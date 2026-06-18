@@ -71,4 +71,4 @@ supabase_setup.sql  — Script SQL para criar o banco (idempotente)
 - **Gestor** — acesso total: importação de base, cadastro de vendedores, metas, todas as carteiras
 - **Vendedor** — vê apenas sua própria carteira e registra contatos/justificativas
 
-> **Último deploy:** 18/06/2026 19:50 (commit `56683c7`)
+> **Último deploy:** 18/06/2026 20:01 (commit `8ea216d`)
