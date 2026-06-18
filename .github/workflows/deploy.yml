@@ -1,0 +1,41 @@
+name: Deploy para GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Atualizar data no README
+        run: |
+          DATE=$(TZ='America/Sao_Paulo' date '+%d/%m/%Y %H:%M')
+          COMMIT=$(git rev-parse --short HEAD)
+          # Atualiza ou cria a linha de último deploy no README
+          if grep -q "^> \*\*Último deploy" README.md; then
+            sed -i "s|^> \*\*Último deploy.*|> **Último deploy:** ${DATE} (commit \`${COMMIT}\`)|" README.md
+          else
+            echo "" >> README.md
+            echo "> **Último deploy:** ${DATE} (commit \`${COMMIT}\`)" >> README.md
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git diff --cached --quiet || git commit -m "docs: atualiza data do último deploy [skip ci]"
+          git push
+
+      - name: Deploy para GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./
+          publish_branch: gh-pages
+          exclude_assets: '.github,*.sql,*.md'
