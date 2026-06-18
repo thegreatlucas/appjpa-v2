@@ -1510,7 +1510,7 @@ function _storageKey(k){
   const scope=(currentRole==='vendedor'&&currentVendedor)
     ?'vend_'+btoa(unescape(encodeURIComponent(currentVendedor))).replace(/=/g,'')
     :'gestor';
-  return 'crm4_'+scope+'_'+k;
+  return 'crm4v2_'+scope+'_'+k;
 }
 function sv(k,v){try{localStorage.setItem(_storageKey(k),JSON.stringify(v))}catch(e){}}
 function ld(k,d){try{const v=localStorage.getItem(_storageKey(k));return v?JSON.parse(v):d}catch(e){return d}}
@@ -1805,9 +1805,9 @@ function populateVendSelect(){
 // Usuários carregados via DOMContentLoaded abaixo
 
 async function tentarAutoLogin(){
-  const raw=localStorage.getItem('crm4_session');
+  const raw=localStorage.getItem('crm4v2_session');
   if(!raw) return false;
-  let sess;try{sess=JSON.parse(raw);}catch(e){localStorage.removeItem('crm4_session');return false;}
+  let sess;try{sess=JSON.parse(raw);}catch(e){localStorage.removeItem('crm4v2_session');return false;}
   if(!sess||!sess.role) return false;
   await carregarUsuarios();
   if(sess.role==='gestor'){iniciarApp('gestor',sess.user||'Gestor');return true;}
@@ -1815,7 +1815,7 @@ async function tentarAutoLogin(){
     const u=_usuarios.find(u=>u.login===sess.user&&u.role==='vendedor'&&u.ativo);
     if(u){iniciarApp('vendedor',u.login);return true;}
   }
-  localStorage.removeItem('crm4_session');
+  localStorage.removeItem('crm4v2_session');
   return false;
 }
 document.addEventListener('DOMContentLoaded',function(){tentarAutoLogin().then(ok=>{if(!ok) carregarUsuarios();});});
@@ -1851,7 +1851,7 @@ async function doLogin(){
   iniciarApp('vendedor',u.login);
 }
 function iniciarApp(role,user){
-  localStorage.setItem('crm4_session',JSON.stringify({role,user}));
+  localStorage.setItem('crm4v2_session',JSON.stringify({role,user}));
   currentRole=role;currentUser=user;
   currentVendedor=role==='vendedor'?user:'';
   loadLocalForUser();
@@ -1879,7 +1879,7 @@ function iniciarApp(role,user){
   });
 }
 function doLogout(){
-  localStorage.removeItem('crm4_session');
+  localStorage.removeItem('crm4v2_session');
   clientes=[];contatos=[];metas={};obsCoord=[];
   procRetencaoHist=[];positivacaoAtualCache=null;
   baseRetencaoRaw=null;historicoAnualRaw=null;
@@ -2107,7 +2107,7 @@ function processarBaseRetencao(file){
 function limparBaseRetencao(){
   baseRetencaoRaw=null;
   positivacaoAtualCache=null;
-  localStorage.removeItem('crm4_positivacaoAtual');
+  localStorage.removeItem('crm4v2_positivacaoAtual');
   sbUpsert('positivacao_atual',{id:'singleton',count:0,ts:new Date().toISOString()});
   document.getElementById('statusRetencaoImport').innerHTML='';
   const fi=document.getElementById('fileInputRetencao');if(fi) fi.value='';
