@@ -2806,50 +2806,14 @@ function renderDash(){
   const stAnt=colAnt?_contaStatus(colAnt):{Retido:0,'Não Retido':0,'Capt./Cob.':0,Recuperado:0};
 
   // ════════════════════════════════════════════════════════════════
-  // POSITIVAÇÃO ATUAL — fonte primária: clientes distintos do Campo A
-  // (Base Retenção). Quando Campo A não está carregado, usa Campo B
-  // (histórico mensal) ou fallback do localStorage.
+  // POSITIVAÇÃO ATUAL = Retidos + Capt./Cob. + Recuperados (Campo B)
+  // TOTAL DE ATENDIMENTOS = clientes distintos no ano (Campo A allClientData)
   // ════════════════════════════════════════════════════════════════
   let positivacaoTotal=0;
   let posRet=0,posRecup=0,posCap=0;
 
-  // ── POSITIVAÇÃO ATUAL (Campo A — mês vigente) ──
-  // Fonte A em memória (gestor que importou): conta clientes do mês atual por vendedor
-  // Fonte A via cache (vendorData salvo no import): usa contagem gravada por vendedor
-  // Sem Campo A: usa status do Campo B (historicoAnualRaw) ou status calculado
-  if(baseRetencaoRaw){
-    if(vf || currentRole==='vendedor'){
-      const nomeRef=(vf||currentVendedor||'');
-      // Titular do MÊS ATUAL (VENDEDOR_CLIENTE de junho) — não do ano inteiro.
-      // Um cliente que migrou de carteira não conta mais para o titular antigo.
-      const mapaMes=baseRetencaoRaw.vendorClientMapMes||baseRetencaoRaw.vendorClientMap;
-      const vKey=resolverVendorKey(mapaMes,nomeRef);
-      if(vKey&&mapaMes[vKey]){
-        positivacaoTotal=mapaMes[vKey].size;
-      } else {
-        positivacaoTotal=0;
-      }
-    } else {
-      positivacaoTotal=Object.keys(baseRetencaoRaw.clientData).length;
-    }
-    if(colAtual&&historicoAnualRaw){
-      base.forEach(c=>{
-        const sn=normalizeStatus(c.statusHistorico?.[colAtual]);
-        if(sn==='Retido') posRet++;
-        else if(sn==='Recuperado') posRecup++;
-        else if(sn==='Capt./Cob.') posCap++;
-      });
-    }
-  } else if(positivacaoAtualCache?.vendorData){
-    // vendorData disponível (salvo pelo gestor no import, via localStorage)
-    const nomeRef=(vf||currentVendedor||'');
-    const vKey=resolverVendorKey(positivacaoAtualCache.vendorData,nomeRef);
-    if(vf||currentRole==='vendedor'){
-      positivacaoTotal=(vKey)?positivacaoAtualCache.vendorData[vKey].mes:0;
-    } else {
-      positivacaoTotal=positivacaoAtualCache.count;
-    }
-  } else if(colAtual&&historicoAnualRaw){
+  // Conta status do mês atual a partir do statusHistorico (Campo B)
+  if(colAtual&&historicoAnualRaw){
     base.forEach(c=>{
       const sn=normalizeStatus(c.statusHistorico?.[colAtual]);
       if(sn==='Retido'){posRet++;positivacaoTotal++;}
@@ -2857,6 +2821,7 @@ function renderDash(){
       else if(sn==='Capt./Cob.'){posCap++;positivacaoTotal++;}
     });
   } else {
+    // Fallback: usa campo status direto quando não há histórico mensal
     base.forEach(c=>{
       const sn=normalizeStatus(c.status);
       if(sn==='Retido'){posRet++;positivacaoTotal++;}
@@ -2868,40 +2833,24 @@ function renderDash(){
   // Total da carteira (Campo B) — usado internamente
   const totalCarteira=base.length;
 
-  // ── TOTAL DE ATENDIMENTOS (Campo A — todos os meses da planilha) ──
-  // Gestor sem filtro : total de clientes distintos na planilha inteira
-  // Vendedor / filtro : clientes distintos desse vendedor em todos os meses do Campo A
+  // ── TOTAL DE ATENDIMENTOS = clientes distintos no ANO (Campo A) ──
   let totalAtendimentos;
-  if(baseRetencaoRaw?.vendorClientMap){
-    // Campo A em memória — fonte mais precisa
+  if(baseRetencaoRaw?.allClientData){
     if(vf||currentRole==='vendedor'){
       const nomeRef=(vf||currentVendedor||'');
       const vKey=resolverVendorKey(baseRetencaoRaw.vendorClientMap,nomeRef);
-      totalAtendimentos=vKey?baseRetencaoRaw.vendorClientMap[vKey].size:0;
+      totalAtendimentos=vKey?baseRetencaoRaw.vendorClientMap[vKey].size:totalCarteira;
     } else {
       totalAtendimentos=Object.keys(baseRetencaoRaw.allClientData).length;
     }
-  } else if(positivacaoAtualCache?.vendorData){
-    // vendorData disponível via localStorage (salvo pelo gestor no import)
-    const nomeRef=(vf||currentVendedor||'');
-    const vKey=resolverVendorKey(positivacaoAtualCache.vendorData,nomeRef);
-    if(vf||currentRole==='vendedor'){
-      totalAtendimentos=vKey?positivacaoAtualCache.vendorData[vKey].ano:totalCarteira;
-    } else {
-      // gestor sem filtro: total de atendimentos do ANO
-      totalAtendimentos=positivacaoAtualCache.countAno||positivacaoAtualCache.count;
-    }
-  } else if(positivacaoAtualCache?.countAno&&!(vf||currentRole==='vendedor')){
-    // Só gestor sem filtro pode usar o total geral do cache (ano)
+  } else if(positivacaoAtualCache?.countAno){
     totalAtendimentos=positivacaoAtualCache.countAno;
   } else {
-    // Sem Campo A nenhum — usa carteira do Campo B
     totalAtendimentos=totalCarteira;
   }
 
-  // Total de Atendimentos = carteira total, mas nunca menor que a positivação
-  // (positivação > total seria logicamente impossível e quebraria o %).
-  totalAtendimentos=Math.max(totalCarteira, positivacaoTotal);
+  // Garante que total nunca seja menor que positivação
+  totalAtendimentos=Math.max(totalAtendimentos, positivacaoTotal);
 
   // Não retidos = todos que NÃO estão positivados no mês atual
   const naoPositivados=totalCarteira-positivacaoTotal;
