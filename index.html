@@ -2899,9 +2899,9 @@ function renderDash(){
     totalAtendimentos=totalCarteira;
   }
 
-  // Total de Atendimentos = tamanho total da carteira (Campo B),
-  // independente do Campo A — é o universo de clientes gerenciados.
-  totalAtendimentos=totalCarteira;
+  // Total de Atendimentos = carteira total, mas nunca menor que a positivação
+  // (positivação > total seria logicamente impossível e quebraria o %).
+  totalAtendimentos=Math.max(totalCarteira, positivacaoTotal);
 
   // Não retidos = todos que NÃO estão positivados no mês atual
   const naoPositivados=totalCarteira-positivacaoTotal;
