@@ -2475,6 +2475,10 @@ function crossReferenceAndBuild(){
     ?{mesAtual:historicoAnualRaw.colMesAtual||null,mesAnterior:historicoAnualRaw.colMesAnterior||null,meses:mesesHistorico}
     :null;
   if(cfg) sv('crm_config',cfg);
+  // Fallback de mês: se Campo B não foi importado, usa data atual do sistema
+  const _mAbrevs=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const _now=new Date();
+  const _mesFallback=_mAbrevs[_now.getMonth()]+'/'+_now.getFullYear();
   populateVendSelect();atualizarCrossResult();refreshAll();
   // Só carimba o ts no Supabase QUANDO o write dos clientes confirmar. Se falhar,
   // o ts do Supabase fica atrás do local → o próximo reload mantém o import local
@@ -2484,7 +2488,9 @@ function crossReferenceAndBuild(){
     ops.push(await limparClientesOrfaos());
     if(_resumoSync(res).ok){
       ops.push(await sbUpsert('positivacao_atual',{id:'singleton',ts,
-        mes_atual:cfg?.mesAtual||null,mes_anterior:cfg?.mesAnterior||null,meses_historico:cfg?.meses||null}));
+        mes_atual:cfg?.mesAtual||_mesFallback,
+        mes_anterior:cfg?.mesAnterior||null,
+        meses_historico:cfg?.meses||null}));
     }
     return ops;
   });
@@ -2798,7 +2804,7 @@ function renderDash(){
       const raw=col?c.statusHistorico?.[col]:c.status;
       const sn=normalizeStatus(raw);
       if(sn&&r[sn]!==undefined) r[sn]++;
-      else if(col&&sn===null) r['Não Retido']++; // sem status no mês = Não Retido
+      else r['Não Retido']++; // sem status (qualquer origem) = Não Retido
     });
     return r;
   };
