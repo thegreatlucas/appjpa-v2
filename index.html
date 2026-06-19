@@ -1506,6 +1506,21 @@ let sidebarCollapsed=false;
 // ==============================
 // STORAGE
 // ==============================
+
+// Limpeza de chaves legadas: antes do fix de isolamento, este app gravava com
+// prefixo 'crm4_' (igual ao appJPA). Remove essas entradas uma única vez para
+// não contaminar o app original que roda no mesmo domínio (GitHub Pages).
+(function limparChavesLegadas(){
+  try {
+    const jaLimpou = localStorage.getItem('crm4v2_isolation_ok');
+    if(jaLimpou) return;
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('crm4_') && !k.startsWith('crm4v2_'))
+      .forEach(k => localStorage.removeItem(k));
+    localStorage.setItem('crm4v2_isolation_ok','1');
+  } catch(e){}
+})();
+
 function _storageKey(k){
   const scope=(currentRole==='vendedor'&&currentVendedor)
     ?'vend_'+btoa(unescape(encodeURIComponent(currentVendedor))).replace(/=/g,'')
