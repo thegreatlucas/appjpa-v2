@@ -2899,6 +2899,15 @@ function renderDash(){
     totalAtendimentos=totalCarteira;
   }
 
+  // Garante consistência entre Positivação/Total e os cards KPI:
+  // quando o Campo B tem o mês atual classificado, usa a soma dos status
+  // como fonte única — Positivação = Retidos + Capt./Cob. + Recuperados,
+  // Total = todos os 4 status somados.
+  if(colAtual && historicoAnualRaw){
+    positivacaoTotal=(stAtual['Retido']||0)+(stAtual['Capt./Cob.']||0)+(stAtual['Recuperado']||0);
+    totalAtendimentos=positivacaoTotal+(stAtual['Não Retido']||0);
+  }
+
   // Não retidos = todos que NÃO estão positivados no mês atual
   const naoPositivados=totalCarteira-positivacaoTotal;
 
