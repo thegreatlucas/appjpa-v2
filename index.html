@@ -2806,34 +2806,55 @@ function renderDash(){
   const stAnt=colAnt?_contaStatus(colAnt):{Retido:0,'Não Retido':0,'Capt./Cob.':0,Recuperado:0};
 
   // ════════════════════════════════════════════════════════════════
-  // POSITIVAÇÃO ATUAL = Retidos + Capt./Cob. + Recuperados (Campo B)
+  // POSITIVAÇÃO ATUAL = clientes distintos atendidos no mês atual (Campo A clientData)
   // TOTAL DE ATENDIMENTOS = clientes distintos no ano (Campo A allClientData)
+  // Os cards KPI (Retidos/Capt./Recuperados) são contados separadamente do Campo B.
   // ════════════════════════════════════════════════════════════════
   let positivacaoTotal=0;
   let posRet=0,posRecup=0,posCap=0;
 
-  // Conta status do mês atual a partir do statusHistorico (Campo B)
+  // Positivação = Campo A mês atual (fonte primária)
+  if(baseRetencaoRaw){
+    if(vf||currentRole==='vendedor'){
+      const nomeRef=(vf||currentVendedor||'');
+      const mapaMes=baseRetencaoRaw.vendorClientMapMes||baseRetencaoRaw.vendorClientMap;
+      const vKey=resolverVendorKey(mapaMes,nomeRef);
+      positivacaoTotal=vKey&&mapaMes[vKey]?mapaMes[vKey].size:0;
+    } else {
+      positivacaoTotal=Object.keys(baseRetencaoRaw.clientData).length;
+    }
+  } else if(positivacaoAtualCache){
+    // Fallback: cache salvo no import anterior
+    if(vf||currentRole==='vendedor'){
+      const nomeRef=(vf||currentVendedor||'');
+      const vKey=positivacaoAtualCache.vendorData?resolverVendorKey(positivacaoAtualCache.vendorData,nomeRef):null;
+      positivacaoTotal=vKey?positivacaoAtualCache.vendorData[vKey].mes:0;
+    } else {
+      positivacaoTotal=positivacaoAtualCache.count||0;
+    }
+  }
+
+  // Conta KPI cards separadamente a partir do statusHistorico (Campo B)
   if(colAtual&&historicoAnualRaw){
     base.forEach(c=>{
       const sn=normalizeStatus(c.statusHistorico?.[colAtual]);
-      if(sn==='Retido'){posRet++;positivacaoTotal++;}
-      else if(sn==='Recuperado'){posRecup++;positivacaoTotal++;}
-      else if(sn==='Capt./Cob.'){posCap++;positivacaoTotal++;}
+      if(sn==='Retido') posRet++;
+      else if(sn==='Recuperado') posRecup++;
+      else if(sn==='Capt./Cob.') posCap++;
     });
   } else {
-    // Fallback: usa campo status direto quando não há histórico mensal
     base.forEach(c=>{
       const sn=normalizeStatus(c.status);
-      if(sn==='Retido'){posRet++;positivacaoTotal++;}
-      else if(sn==='Recuperado'){posRecup++;positivacaoTotal++;}
-      else if(sn==='Capt./Cob.'){posCap++;positivacaoTotal++;}
+      if(sn==='Retido') posRet++;
+      else if(sn==='Recuperado') posRecup++;
+      else if(sn==='Capt./Cob.') posCap++;
     });
   }
 
   // Total da carteira (Campo B) — usado internamente
   const totalCarteira=base.length;
 
-  // ── TOTAL DE ATENDIMENTOS = clientes distintos no ANO (Campo A) ──
+  // Total de Atendimentos = clientes distintos no ANO (Campo A allClientData)
   let totalAtendimentos;
   if(baseRetencaoRaw?.allClientData){
     if(vf||currentRole==='vendedor'){
